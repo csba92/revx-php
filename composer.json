@@ -1,15 +1,25 @@
 {
-    "name": "revx-php/revx-php",
-    "description": "A small PHP client for the Revolut X REST API.",
+    "name": "csba92/revx-php",
+    "description": "A small, unofficial PHP client for the Revolut X REST API.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["revolut", "revolut-x", "crypto", "trading", "api"],
+    "keywords": ["revolut", "revolut-x", "crypto", "trading", "api", "client"],
+    "homepage": "https://github.com/csba92/revx-php",
+    "authors": [
+        {
+            "name": "csba92",
+            "homepage": "https://github.com/csba92"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/csba92/revx-php/issues",
+        "source": "https://github.com/csba92/revx-php"
+    },
     "require": {
         "php": "^8.4",
         "ext-curl": "*",
         "ext-openssl": "*",
-        "ext-sodium": "*",
-        "ext-json": "*"
+        "ext-sodium": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5"
@@ -26,6 +36,9 @@
     },
     "scripts": {
         "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true

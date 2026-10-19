@@ -1,6 +1,7 @@
 # revx-php
 
-A focused PHP 8.4+ client for the [Revolut X REST API](https://developer.revolut.com/docs/api/revolut-x-crypto-exchange). It covers public market data and signed read-only account data, with no framework dependency and no trading actions.
+An unofficial, vibe-coded, PHP 8.4+ client for the [Revolut X REST API](https://developer.revolut.com/docs/api/revolut-x-crypto-exchange).
+It covers public market data and signed read-only account data, with no framework dependency and no trading actions.
 
 ## Requirements
 
