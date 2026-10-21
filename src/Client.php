@@ -11,6 +11,7 @@ use Revx\Exception\AuthenticationException;
 use Revx\Http\CurlHttpClient;
 use Revx\Http\HttpClientInterface;
 use Revx\Market\MarketApi;
+use Revx\Trading\TradingApi;
 
 final class Client
 {
@@ -21,6 +22,7 @@ final class Client
     private readonly string $baseUrl;
     private readonly MarketApi $market;
     private readonly AccountApi $account;
+    private readonly TradingApi $trading;
 
     public function __construct(
         private readonly ?string $apiKey = null,
@@ -39,6 +41,7 @@ final class Client
         $this->signer = $privateKeyPem === null ? null : new RequestSigner($privateKeyPem);
         $this->market = new MarketApi($this);
         $this->account = new AccountApi($this);
+        $this->trading = new TradingApi($this);
     }
 
     public static function fromEnvironment(?HttpClientInterface $http = null): self
@@ -73,6 +76,11 @@ final class Client
         return $this->account;
     }
 
+    public function trading(): TradingApi
+    {
+        return $this->trading;
+    }
+
     public function isAuthenticated(): bool
     {
         return $this->apiKey !== null && $this->apiKey !== '' && $this->signer !== null;
@@ -81,34 +89,54 @@ final class Client
     /** @param array<string, scalar|null> $query */
     public function publicGet(string $path, array $query = []): array
     {
-        return $this->get($path, $query, false);
+        return $this->request('GET', $path, $query, null, false);
     }
 
     /** @param array<string, scalar|null> $query */
     public function authenticatedGet(string $path, array $query = []): array
     {
+        return $this->authenticatedRequest('GET', $path, $query);
+    }
+
+    /**
+     * Sends a signed request to an authenticated Revolut X endpoint.
+     *
+     * @param array<string, scalar|null> $query
+     * @param array<string, mixed>|null $payload
+     */
+    public function authenticatedRequest(string $method, string $path, array $query = [], ?array $payload = null): array
+    {
         if (!$this->isAuthenticated()) {
             throw new AuthenticationException('Authenticated endpoints require an API key and Ed25519 private key.');
         }
 
-        return $this->get($path, $query, true);
+        return $this->request($method, $path, $query, $payload, true);
     }
 
-    /** @param array<string, scalar|null> $query */
-    private function get(string $path, array $query, bool $authenticated): array
+    /**
+     * @param array<string, scalar|null> $query
+     * @param array<string, mixed>|null $payload
+     */
+    private function request(string $method, string $path, array $query, ?array $payload, bool $authenticated): array
     {
+        $method = strtoupper($method);
         $query = $this->buildQuery($query);
         $url = $this->baseUrl . $path . ($query === '' ? '' : '?' . $query);
         $headers = ['Accept' => 'application/json'];
+        $body = $payload === null ? null : json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+        if ($body !== null) {
+            $headers['Content-Type'] = 'application/json';
+        }
 
         if ($authenticated) {
             $timestamp = (string) (int) floor(microtime(true) * 1000);
             $headers['X-Revx-API-Key'] = (string) $this->apiKey;
             $headers['X-Revx-Timestamp'] = $timestamp;
-            $headers['X-Revx-Signature'] = $this->signer->sign($timestamp, 'GET', $path, $query);
+            $headers['X-Revx-Signature'] = $this->signer->sign($timestamp, $method, $path, $query, $body ?? '');
         }
 
-        $response = $this->http->request('GET', $url, $headers, null, $this->timeout);
+        $response = $this->http->request($method, $url, $headers, $body, $this->timeout);
         $decoded = $response->body === '' ? [] : json_decode($response->body, true);
         if (!is_array($decoded)) {
             $decoded = [];

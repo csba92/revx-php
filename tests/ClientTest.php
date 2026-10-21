@@ -40,6 +40,57 @@ final class ClientTest extends TestCase
             $details['ed25519']['pub_key'],
         ));
     }
+
+    public function testItPlacesAndSignsAnOrder(): void
+    {
+        $key = @openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_ED25519]);
+        self::assertNotFalse($key);
+        self::assertTrue(openssl_pkey_export($key, $pem));
+        $details = openssl_pkey_get_details($key);
+
+        $http = new RecordingHttpClient(new Response(200, '{"data":[]}'));
+        $client = new Client('api-key', $pem, $http);
+        $client->trading()->place(
+            '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+            'BTC-USD',
+            'buy',
+            ['limit' => ['base_size' => '0.001', 'price' => '95000']],
+        );
+
+        $call = $http->calls[0];
+        self::assertSame('POST', $call['method']);
+        self::assertSame('https://revx.revolut.com/api/1.0/orders', $call['url']);
+        self::assertSame('application/json', $call['headers']['Content-Type']);
+        self::assertJsonStringEqualsJsonString(
+            '{"client_order_id":"3fa85f64-5717-4562-b3fc-2c963f66afa6","symbol":"BTC-USD","side":"buy","order_configuration":{"limit":{"base_size":"0.001","price":"95000"}}}',
+            (string) $call['body'],
+        );
+
+        $message = $call['headers']['X-Revx-Timestamp'] . 'POST/api/1.0/orders' . $call['body'];
+        self::assertTrue(sodium_crypto_sign_verify_detached(
+            base64_decode($call['headers']['X-Revx-Signature'], true),
+            $message,
+            $details['ed25519']['pub_key'],
+        ));
+
+        $client->trading()->replace(
+            '7a52e92e-8639-4fe1-abaa-68d3a2d5234b',
+            'b7193799-86e5-4062-8d0d-3ed4b980239a',
+            ['price' => '96000'],
+        );
+        $client->trading()->cancel('7a52e92e-8639-4fe1-abaa-68d3a2d5234b');
+        $client->trading()->cancelAll();
+
+        self::assertSame(['POST', 'PUT', 'DELETE', 'DELETE'], array_column($http->calls, 'method'));
+        self::assertSame(
+            'https://revx.revolut.com/api/1.0/orders/7a52e92e-8639-4fe1-abaa-68d3a2d5234b',
+            $http->calls[1]['url'],
+        );
+        self::assertJsonStringEqualsJsonString(
+            '{"client_order_id":"b7193799-86e5-4062-8d0d-3ed4b980239a","price":"96000"}',
+            (string) $http->calls[1]['body'],
+        );
+    }
 }
 
 final class RecordingHttpClient implements HttpClientInterface

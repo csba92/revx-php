@@ -1,7 +1,7 @@
 # revx-php
 
-An unofficial, vibe-coded, PHP 8.4+ client for the [Revolut X REST API](https://developer.revolut.com/docs/api/revolut-x-crypto-exchange).
-It covers public market data and signed read-only account data, with no framework dependency and no trading actions.
+An unofficial, mostly vibe-coded, PHP 8.4+ client for the [Revolut X REST API](https://developer.revolut.com/docs/api/revolut-x-crypto-exchange).
+It covers public market data, authenticated account data, and signed order lifecycle operations without framework dependencies.
 
 ## Requirements
 
@@ -137,6 +137,48 @@ $order = $account->order('venue-order-id');
 
 List endpoints preserve the exchange's `{ data, metadata }` response shape, including any pagination cursor in `metadata.next_cursor`.
 
+### Trading
+
+Trading calls require an authenticated client. Supply your own UUID for every `clientOrderId`; this is important for safely locating an order when a network reply is lost.
+
+```php
+$trading = $client->trading();
+
+// Place a limit order.
+$placed = $trading->place(
+    clientOrderId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    symbol: 'BTC-USD',
+    side: 'buy',
+    configuration: [
+        'limit' => [
+            'base_size' => '0.001',
+            'price' => '95000',
+            'execution_instructions' => ['post_only'],
+        ],
+    ],
+);
+
+// A market order uses a market configuration instead.
+$marketOrder = $trading->place(
+    clientOrderId: '9a0ea5d1-74a5-4cb6-9a5b-d0254ec2c6b1',
+    symbol: 'BTC-USD',
+    side: 'sell',
+    configuration: ['market' => ['base_size' => '0.001']],
+);
+
+// Replace only the fields that change. Revolut X assigns the replacement a new venue ID.
+$replaced = $trading->replace(
+    venueOrderId: '7a52e92e-8639-4fe1-abaa-68d3a2d5234b',
+    clientOrderId: 'b7193799-86e5-4062-8d0d-3ed4b980239a',
+    changes: ['price' => '96000'],
+);
+
+$trading->cancel('7a52e92e-8639-4fe1-abaa-68d3a2d5234b');
+$trading->cancelAll();
+```
+
+`place()` sends the `configuration` object as provided, so it can represent every order type supported by the current Revolut X API. `replace()` likewise forwards the permitted replacement fields without narrowing the exchange contract.
+
 ## Authentication
 
 The client signs authenticated requests with Ed25519. The signature covers the exact string specified by Revolut X:
@@ -180,12 +222,13 @@ try {
 
 ## Scope
 
-This package deliberately exposes only:
+This package exposes:
 
 - public currencies, pairs, tickers, candles, and order books;
-- authenticated balances and order lookups.
+- authenticated balances and order lookups;
+- order placement, replacement, cancellation, and cancellation of all active orders.
 
-It does not place, amend, or cancel orders. That keeps the package suitable for applications that need market visibility and account reporting without granting a library path to execute trades.
+Trading operations send real instructions to the exchange. Validate application inputs, use least-privilege API keys, and treat order placement and cancellation as production-impacting actions.
 
 ## Testing
 
