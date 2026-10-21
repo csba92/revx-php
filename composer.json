@@ -3,7 +3,6 @@
     "description": "A small, unofficial PHP client for the Revolut X REST API.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["revolut", "revolut-x", "crypto", "trading", "api", "client"],
     "homepage": "https://github.com/csba92/revx-php",
     "authors": [
         {
@@ -15,6 +14,7 @@
         "issues": "https://github.com/csba92/revx-php/issues",
         "source": "https://github.com/csba92/revx-php"
     },
+    "keywords": ["revolut", "revolut-x", "crypto", "trading", "api"],
     "require": {
         "php": "^8.4",
         "ext-curl": "*",

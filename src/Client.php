@@ -12,6 +12,7 @@ use Revx\Http\CurlHttpClient;
 use Revx\Http\HttpClientInterface;
 use Revx\Market\MarketApi;
 use Revx\Trading\TradingApi;
+use Revx\Trades\TradesApi;
 
 final class Client
 {
@@ -23,6 +24,7 @@ final class Client
     private readonly MarketApi $market;
     private readonly AccountApi $account;
     private readonly TradingApi $trading;
+    private readonly TradesApi $trades;
 
     public function __construct(
         private readonly ?string $apiKey = null,
@@ -42,6 +44,7 @@ final class Client
         $this->market = new MarketApi($this);
         $this->account = new AccountApi($this);
         $this->trading = new TradingApi($this);
+        $this->trades = new TradesApi($this);
     }
 
     public static function fromEnvironment(?HttpClientInterface $http = null): self
@@ -79,6 +82,11 @@ final class Client
     public function trading(): TradingApi
     {
         return $this->trading;
+    }
+
+    public function trades(): TradesApi
+    {
+        return $this->trades;
     }
 
     public function isAuthenticated(): bool

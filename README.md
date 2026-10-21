@@ -137,6 +137,29 @@ $order = $account->order('venue-order-id');
 
 List endpoints preserve the exchange's `{ data, metadata }` response shape, including any pagination cursor in `metadata.next_cursor`.
 
+### Trades and fills
+
+```php
+$trades = $client->trades();
+
+// Public trade history can cover one pair or every pair when symbol is omitted.
+$public = $trades->publicHistory(
+    symbol: 'BTC-USD',
+    since: 1735689600000,
+    until: 1735776000000,
+    limit: 100,
+    region: 'EEA',
+);
+
+// Account trade history (your fills) is scoped to a single pair.
+$private = $trades->privateHistory('BTC-USD', limit: 100);
+
+// Fills belonging to an individual venue order.
+$fills = $trades->fills('7a52e92e-8639-4fe1-abaa-68d3a2d5234b');
+```
+
+All three methods return the response payload from Revolut X. Public and private history include pagination information in `metadata.next_cursor` when another page is available.
+
 ### Trading
 
 Trading calls require an authenticated client. Supply your own UUID for every `clientOrderId`; this is important for safely locating an order when a network reply is lost.
@@ -226,6 +249,7 @@ This package exposes:
 
 - public currencies, pairs, tickers, candles, and order books;
 - authenticated balances and order lookups;
+- public and authenticated trade history, plus per-order fills;
 - order placement, replacement, cancellation, and cancellation of all active orders.
 
 Trading operations send real instructions to the exchange. Validate application inputs, use least-privilege API keys, and treat order placement and cancellation as production-impacting actions.

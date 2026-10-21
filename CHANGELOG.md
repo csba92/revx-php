@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 — 2026-10-21
+
+- Added public and authenticated trade history.
+- Added authenticated fills for a venue order.
+
 ## 0.2.0 — 2026-10-21
 
 - Added signed order placement, replacement, cancellation, and cancellation of all active orders.

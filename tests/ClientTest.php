@@ -19,6 +19,12 @@ final class ClientTest extends TestCase
         self::assertSame(['symbol' => 'BTC/USD'], $client->market()->ticker('BTC-USD'));
         self::assertSame('https://revx.revolut.com/api/1.0/public/tickers?symbols=BTC-USD', $http->calls[0]['url']);
         self::assertArrayNotHasKey('X-Revx-Signature', $http->calls[0]['headers']);
+
+        $client->trades()->publicHistory('BTC-USD', 1700000000000, 1700086400000, limit: 100, region: 'EEA');
+        self::assertSame(
+            'https://revx.revolut.com/api/1.0/public/trades/all?symbol=BTC-USD&start_date=1700000000000&end_date=1700086400000&limit=100&region=EEA',
+            $http->calls[1]['url'],
+        );
     }
 
     public function testItSignsAuthenticatedRequests(): void
@@ -39,6 +45,19 @@ final class ClientTest extends TestCase
             $message,
             $details['ed25519']['pub_key'],
         ));
+
+        $client->trades()->privateHistory('BTC-USD', limit: 100);
+        $client->trades()->fills('7a52e92e-8639-4fe1-abaa-68d3a2d5234b');
+
+        self::assertSame(
+            'https://revx.revolut.com/api/1.0/trades/private/BTC-USD?limit=100',
+            $http->calls[1]['url'],
+        );
+        self::assertSame(
+            'https://revx.revolut.com/api/1.0/orders/fills/7a52e92e-8639-4fe1-abaa-68d3a2d5234b',
+            $http->calls[2]['url'],
+        );
+        self::assertArrayHasKey('X-Revx-Signature', $http->calls[2]['headers']);
     }
 
     public function testItPlacesAndSignsAnOrder(): void
